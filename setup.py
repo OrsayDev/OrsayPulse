@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="OrsayPulse",
-    version="0.1",
+    version="0.1.1",
     author="Ange",
     description="TODO",
     url="https://github.com/yvesauad/yvorsay-instrument",

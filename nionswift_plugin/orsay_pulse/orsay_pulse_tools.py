@@ -6,7 +6,7 @@ from nion.utils import Event
 class PulseTools:
     def __init__(self):
         logging.info('Init OK.')
-        self.__keithley_inst = Keithley(True)
+        self.__keithley_inst = Keithley(False)
         self.__arduino_inst = Arduino()
         self.__osc = Oscilloscope()
         self.__agi = Agilent()
