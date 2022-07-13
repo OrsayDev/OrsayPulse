@@ -54,12 +54,6 @@ class handler:
 
     def pool_current(self, widget):
         print('check')
-    
-    def pool_ampl(self, widget):
-        pass
-    
-    def pool_larg(self, widget):
-        pass
 
     def pool_pulse(self, widget):
         pass
@@ -72,11 +66,11 @@ class View:
     def __init__(self, instrument):
         ui = Declarative.DeclarativeUI()
 
-        #Gain group
-        self.get_current_label = ui.create_label(text='Current (mA): ', name='get_current_label')
-        self.get_current_pb = ui.create_push_button(text='Get current', name='get_current_pb', on_clicked='pool_current')
+        #Keithley
+        self.average_label = ui.create_label(text='Averages: ', name='average_label')
+        self.average_le = ui.create_line_edit(text='@binding(instrument.averages)', name='average_le', width='50')
 
-        self.current_row = ui.create_row(self.get_current_label, self.get_current_pb, ui.create_stretch())
+        self.average_row = ui.create_row(self.average_label, self.average_le, ui.create_stretch())
 
         self.get_pulse_label = ui.create_label(text='Pulse (ms): ', name='get_pulse_label')
         self.get_pulse_pb = ui.create_push_button(text='Get pulse', name='get_pulse_pb',
@@ -85,21 +79,30 @@ class View:
 
         self.pulse_row = ui.create_row(self.get_pulse_label, self.get_pulse_pb, self.average_resistance, ui.create_stretch())
         
+        
+        
+        
+        
+        
+        
+        #Agilent
         self.get_larg_label = ui.create_label(text='Width (ms): ', name='get_larg_label')
-        self.get_larg_pb = ui.create_push_button(text='Get width', name='get_larg_pb', on_clicked='pool_larg')
+        self.get_larg_pb = ui.create_line_edit(text='@binding(instrument.pulse_width)', name='get_larg_pb', width='50')
 
         self.larg_row = ui.create_row(self.get_larg_label, self.get_larg_pb, ui.create_stretch())
         
         
         self.get_ampl_label = ui.create_label(text='Ampli (V): ', name='get_ampl_label')
-        self.get_ampl_pb = ui.create_push_button(text='Get ampli', name='get_ampl_pb', on_clicked='pool_ampl')
+        self.get_ampl_pb = ui.create_line_edit(text='@binding(instrument.pulse_tension)', name='get_ampl_pb', width='50')
 
         self.ampl_row = ui.create_row(self.get_ampl_label, self.get_ampl_pb, ui.create_stretch())
         
         
 
+
+        #Group manager
         self.d2_group = ui.create_group(title='Keithley', content=ui.create_column(
-            self.current_row, self.pulse_row, ui.create_stretch()))
+            self.average_row, self.pulse_row, ui.create_stretch()))
         
         self.d3_group = ui.create_group(title='Agilent', content=ui.create_column(
             self.larg_row, self.ampl_row , ui.create_stretch()))
