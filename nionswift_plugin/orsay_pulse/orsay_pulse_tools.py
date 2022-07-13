@@ -6,14 +6,14 @@ from nion.utils import Event
 class PulseTools:
     def __init__(self):
         logging.info('Init OK.')
-        self.__keithley_inst = Keithley(False)
-        self.__arduino_inst = Arduino()
+        self.__keithley_inst = Keithley(True)
+        self.__arduino_inst = Arduino(True)
         self.__osc = Oscilloscope()
-        self.__agi = Agilent()
+        self.__agi = Agilent(True)
 
         self.property_changed_event = Event.Event()
 
-    def acquire(self):
+    def pulse(self):
         self.property_changed_event.fire("resistance_average")
         return None
 
@@ -28,17 +28,68 @@ class PulseTools:
 
 
 class Agilent:
-    def __init__(self):
+    def __init__(self,debug):
+        
+        self.sucessfull = False
+        self.debug = debug
+        
+        if debug :
+            self.sucessfull = True
+        else: 
+            import pyvisa
+            try : 
+                rm = pyvisa.ResourceManager()
+                self.inst1 = rm.open_resource("GPIB0::5::0::INSTR")
+            except pyvisa.errors.VisaIOError:
+                self.inst = None
+                logging.info("***Agilent***: Could not find instrument.")
+        
+    def values_ag(self):
+        
+        if not self.debug :
+            self.inst1.write(":PULS:DOUB OFF")        # Mode Single-Pulse 
+            self.inst1.write(":PULS:DEL 0.0MS")      # fixer le délai à 0
+            self.inst1.write(":OUTPUT:POL POS")     # Fixer la polarisation positive
+            self.inst1.write(":TRIG:SOUR EXT")      # Déclencher le pulse par une source externe 
+            self.inst1.write(":OUTP 1") 
+
+        
+        
         pass
 
 
 class Arduino:
-    def __init__(self):
-        pass
-
+    def __init__(self,debug):
+        
+        self.sucessfull = False
+        self.debug = debug
+        
+        if debug :
+            self.sucessfull = True
+        else: 
+            import pyvisa
+            try : 
+                rm = pyvisa.ResourceManager()
+                self.inst2 = rm.open_resource("ASRL3::INSTR")
+                
+            except pyvisa.errors.VisaIOError:
+               self.inst = None
+               logging.info("***Arduino***: Could not find instrument.")
+          
+    
+        
+        
+        
+        
+        
+        
 class Oscilloscope:
     def __init__(self):
         pass
+
+
+
+
 
 class Keithley:
     def __init__(self, debug):

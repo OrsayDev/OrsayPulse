@@ -2,7 +2,7 @@
 import gettext
 from nion.swift import Panel
 from nion.swift import Workspace
-import time
+
 import threading
 
 from nion.ui import Declarative
@@ -54,12 +54,18 @@ class handler:
 
     def pool_current(self, widget):
         print('check')
+    
+    def pool_ampl(self, widget):
+        pass
+    
+    def pool_larg(self, widget):
+        pass
 
     def pool_pulse(self, widget):
         pass
 
     def acquire_measurement(self, widget):
-        self.instrument.acquire()
+        self.instrument.pulse()
 
 class View:
 
@@ -78,15 +84,37 @@ class View:
         self.average_resistance = ui.create_label(text='@binding(instrument.resistance_average)', name='average_resistance')
 
         self.pulse_row = ui.create_row(self.get_pulse_label, self.get_pulse_pb, self.average_resistance, ui.create_stretch())
+        
+        self.get_larg_label = ui.create_label(text='Width (ms): ', name='get_larg_label')
+        self.get_larg_pb = ui.create_push_button(text='Get width', name='get_larg_pb', on_clicked='pool_larg')
+
+        self.larg_row = ui.create_row(self.get_larg_label, self.get_larg_pb, ui.create_stretch())
+        
+        
+        self.get_ampl_label = ui.create_label(text='Ampli (V): ', name='get_ampl_label')
+        self.get_ampl_pb = ui.create_push_button(text='Get ampli', name='get_ampl_pb', on_clicked='pool_ampl')
+
+        self.ampl_row = ui.create_row(self.get_ampl_label, self.get_ampl_pb, ui.create_stretch())
+        
+        
 
         self.d2_group = ui.create_group(title='Keithley', content=ui.create_column(
             self.current_row, self.pulse_row, ui.create_stretch()))
+        
+        self.d3_group = ui.create_group(title='Agilent', content=ui.create_column(
+            self.larg_row, self.ampl_row , ui.create_stretch()))
 
-        self.acquire_pb = ui.create_push_button(text='Acquire', name='acquire_pb',
+        self.acquire_pb = ui.create_push_button(text='Pulse', name='acquire_pb',
                                                 on_clicked='acquire_measurement')
 
 
-        self.ui_view = ui.create_column(self.d2_group, self.acquire_pb)
+        self.ui_view = ui.create_column(self.d2_group,self.d3_group,self.acquire_pb)
+        
+        
+        
+       
+
+        
 
 def create_panel(document_controller, panel_id, properties):
     instrument = properties["instrument"]
