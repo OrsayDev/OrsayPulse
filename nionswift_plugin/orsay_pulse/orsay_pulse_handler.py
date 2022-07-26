@@ -55,10 +55,13 @@ class handler:
     def pool_current(self, widget):
         print('check')
 
-    def pool_pulse(self, widget):
-        pass
+    def pool_resistance(self, widget):
+        self.instrument.resistance()
 
     def acquire_measurement(self, widget):
+        self.instrument.pulse()
+        
+    def exit_measurement(self, widget):
         self.instrument.pulse()
 
 class View:
@@ -68,21 +71,19 @@ class View:
 
         #Keithley
         self.average_label = ui.create_label(text='Averages: ', name='average_label')
-        self.average_le = ui.create_line_edit(text='@binding(instrument.averages)', name='average_le', width='50')
+        self.average_le = ui.create_line_edit(text='@binding(instrument.averages)', name='average_le', width=50)
 
         self.average_row = ui.create_row(self.average_label, self.average_le, ui.create_stretch())
-
-        self.get_pulse_label = ui.create_label(text='Pulse (ms): ', name='get_pulse_label')
-        self.get_pulse_pb = ui.create_push_button(text='Get pulse', name='get_pulse_pb',
-                                                    on_clicked='pool_pulse')
+        
+        
+        self.average_resistance_label = ui.create_label(text='Resistance (before) (Ω): ', name='average_resistance')
         self.average_resistance = ui.create_label(text='@binding(instrument.resistance_average)', name='average_resistance')
+        
+        self.average_resistance2_label = ui.create_label(text=' Resistance (after) (Ω): ', name='average_resistance2')
+        self.average_resistance2 = ui.create_label(text='@binding(instrument.resistance_average2)', name='average_resistance2')
 
-        self.pulse_row = ui.create_row(self.get_pulse_label, self.get_pulse_pb, self.average_resistance, ui.create_stretch())
-        
-        
-        
-        
-        
+        self.pulse_row = ui.create_row(self.average_resistance_label, self.average_resistance, ui.create_stretch())
+        self.pulse_row2 = ui.create_row(self.average_resistance2_label, self.average_resistance2, ui.create_stretch())
         
         
         #Agilent
@@ -98,20 +99,32 @@ class View:
         self.ampl_row = ui.create_row(self.get_ampl_label, self.get_ampl_pb, ui.create_stretch())
         
         
-
-
+        
+        #Measurement tab
+        self.get_resistance_pb = ui.create_push_button(text='Get resistance', name='get_resistance_pb',
+                                                     on_clicked='pool_resistance', width=100)
+        self.acquire_pb = ui.create_push_button(text='Pulse', name='acquire_pb',
+                                                on_clicked='acquire_measurement',width=100)
+        
+        self.exit_pb = ui.create_push_button(text='Stop', name='exit_pb',
+                                                on_clicked='exit_measurement',width=100)
+        self.progress_bar = ui.create_progress_bar(name = 'progress_bar', value = '@binding(instrument.progress_percentage)', width=300)
+        
+        self.button_row = ui.create_row(self.get_resistance_pb, self.acquire_pb, self.exit_pb, ui.create_stretch())
+        
+        
         #Group manager
         self.d2_group = ui.create_group(title='Keithley', content=ui.create_column(
-            self.average_row, self.pulse_row, ui.create_stretch()))
+            self.average_row,self.pulse_row, self.pulse_row2, ui.create_stretch()))
+        # , 
         
         self.d3_group = ui.create_group(title='Agilent', content=ui.create_column(
             self.larg_row, self.ampl_row , ui.create_stretch()))
+        
+        self.d4_group = ui.create_group(title='Measurement', content=ui.create_column(
+            self.button_row, self.progress_bar, ui.create_stretch()))
 
-        self.acquire_pb = ui.create_push_button(text='Pulse', name='acquire_pb',
-                                                on_clicked='acquire_measurement')
-
-
-        self.ui_view = ui.create_column(self.d2_group,self.d3_group,self.acquire_pb)
+        self.ui_view = ui.create_column(self.d2_group,self.d3_group, self.d4_group)
         
         
         

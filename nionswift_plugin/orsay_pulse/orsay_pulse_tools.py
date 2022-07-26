@@ -14,32 +14,90 @@ class PulseTools:
         self.__arduino_inst = Arduino(False)
         self.__osc = Oscilloscope()
         self.__agi = Agilent(False)
+        # self.__close = close_port_com
         
+        self.property_changed_event = Event.Event()
+        
+        self.progress_percentage = 0
         self.__resistance_avg = 0
+        self.__resistance_avg2 = 0
         self.__avg = 1
         self.pulse_width = 5 #in ms
         self.pulse_tension = 8 #in volts
         
-        self.property_changed_event = Event.Event()
+    def progress_bar_loop(self, increment):
+        for x in range(increment):
+            self.progress_percentage += 1
+            time.sleep(0.005)
 
     def pulse(self):
         threading.Thread(target=self.pulse_start, args=(),).start()
 
     def pulse_start(self):
-        self.property_changed_event.fire("resistance_average")
+        self.progress_percentage = 0
+        #self.progress_percentage += 20
+        self.progress_bar_loop(20)
+        self.resistance_average = self.__keithley_inst.get_values(self.__avg)[0]
+        #self.progress_percentage += 15
+        self.progress_bar_loop(15)
         self.__arduino_inst.trigger_impulsion()
+        #self.progress_percentage += 15
+        self.progress_bar_loop(15)
         time.sleep(TIME_WAIT)
+        #self.progress_percentage += 15
+        self.progress_bar_loop(15)
         self.__arduino_inst.change_state(True)
-        self.property_changed_event.fire("resistance_average")
+        #self.progress_percentage += 15
+        self.progress_bar_loop(15)
+        self.resistance_average2 = self.__keithley_inst.get_values(self.__avg)[0]
+        #self.progress_percentage = 95
+        self.progress_bar_loop(20)
         self.__arduino_inst.reset()
+        #self.progress_percentage = 100
+        # self.__close.close_agilent(True)
+        # self.__close.close_arduino(True)
+        # self.__close.close_keithley(True)
         return None
+    
+    def resistance(self):
+        threading.Thread(target=self.resistance_start, args=(),).start()
+  
+    
+    def resistance_start(self):
+        self.progress_percentage = 0
+        self.progress_bar_loop(30)
+        self.resistance_average = self.__keithley_inst.get_values(self.__avg)[0]
+        #self.progress_percentage = 100
+        self.progress_bar_loop(70)
+        return None 
+
+
+    @property
+    def progress_percentage(self):
+        return self.__progress_per
+
+    @progress_percentage.setter #Setter
+    def progress_percentage(self, val):
+        self.__progress_per = val
+        self.property_changed_event.fire("progress_percentage")
 
     @property #Getter
     def resistance_average(self):
-        val = self.__keithley_inst.get_values(self.__avg)
-        print(val)
-        self.__resistance_avg = val[0]
-        return str(self.__resistance_avg)
+        return format(self.__resistance_avg, '.1f')
+    
+    @resistance_average.setter #Setter
+    def resistance_average(self, val):
+        self.__resistance_avg = val
+        self.property_changed_event.fire("resistance_average")
+        
+    @property #Getter
+    def resistance_average2(self):
+        return format(self.__resistance_avg2, '.1f')
+
+    @resistance_average2.setter #Setter
+    def resistance_average2(self, val):
+        self.__resistance_avg2 = val
+        self.property_changed_event.fire("resistance_average2")
     
     @property #Getter
     def averages(self):
@@ -100,6 +158,29 @@ class Agilent:
         self.inst1.write(":PULS:WIDT %sMS" % (width))
 
 
+
+
+
+
+# class close_port_com :
+    
+#     def __init__(self,debug):
+        
+#         self.sucessfull = False
+#         self.debug = debug
+        
+        
+#     def close_arduino(self):
+#        return self.inst2.close()
+       
+#     def close_keithley(self):
+#        return  self.inst.close()
+        
+#     def close_agilent(self):
+#          return self.inst1.close()
+             
+
+
 class Arduino:
     def __init__(self,debug):
         
@@ -137,13 +218,9 @@ class Arduino:
         
         
         
-        
-        
 class Oscilloscope:
     def __init__(self):
         pass
-
-
 
 
 
@@ -199,7 +276,15 @@ class Keithley:
             self.inst.write(message)
 
     def get_current(self):
+        
+        
+        
         if self.debug:
             return numpy.random.rand()
         else:
             pass
+        
+        
+        
+        
+        
