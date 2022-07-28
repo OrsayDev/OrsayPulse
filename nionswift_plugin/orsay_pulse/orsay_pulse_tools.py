@@ -1,29 +1,64 @@
 __author__ = "Yves Auad"
+
+
 import numpy
 import logging
 from nion.utils import Event
 import time
 import threading
+from time import strftime
 
 TIME_WAIT = 2
 
+
+
+
+
 class PulseTools:
+    
+    
     def __init__(self):
         logging.info('Init OK.')
-        self.__keithley_inst = Keithley(False)
-        self.__arduino_inst = Arduino(False)
-        self.__osc = Oscilloscope()
-        self.__agi = Agilent(False)
-        # self.__close = close_port_com
+        #self.datalog= open('Résistances.txt','w')
+        with open('Résistances.txt','w') as f:
+            f.write('Date,Amplitude(Volts),Largeur(ms),Résistance_avant,Résistance_après')
+            f.write('\n')
+            
+        #self.datalog.write('Date,Amplitude(Volts),Largeur(ms),Résistance_avant,Résistance_après')
+        #self.datalog.write('\n')
+        
+        
+        #self.__keithley_inst = Keithley(False)
+        #self.__arduino_inst = Arduino(False)
+        #self.__osc = Oscilloscope()
+        #self.__agi = Agilent(False)
         
         self.property_changed_event = Event.Event()
+        self.property_busy_event = Event.Event()
+        #self.property_free_event = Event.Event()
         
+        self.__pulse_width = 6 #in ms
+        self.__pulse_tension = 8 #in volts
         self.progress_percentage = 0
         self.__resistance_avg = 0
         self.__resistance_avg2 = 0
         self.__avg = 1
-        self.pulse_width = 5 #in ms
-        self.pulse_tension = 8 #in volts
+        
+    
+    
+    def init(self):
+          self.__keithley_inst = Keithley(False)
+          self.__arduino_inst = Arduino(False)
+          self.__osc = Oscilloscope()
+          self.__agi = Agilent(False)
+          
+          self.pulse_width = self.__pulse_width #in ms
+          self.pulse_tension = self.__pulse_tension #in volts
+          
+          return True 
+
+        
+               
         
     def progress_bar_loop(self, increment):
         for x in range(increment):
@@ -40,6 +75,7 @@ class PulseTools:
         self.resistance_average = self.__keithley_inst.get_values(self.__avg)[0]
         #self.progress_percentage += 15
         self.progress_bar_loop(15)
+        self.__agi.values_ag()
         self.__arduino_inst.trigger_impulsion()
         #self.progress_percentage += 15
         self.progress_bar_loop(15)
@@ -52,6 +88,8 @@ class PulseTools:
         self.resistance_average2 = self.__keithley_inst.get_values(self.__avg)[0]
         #self.progress_percentage = 95
         self.progress_bar_loop(20)
+        self.savedata()
+        #self.datalog.close()
         self.__arduino_inst.reset()
         #self.progress_percentage = 100
         # self.__close.close_agilent(True)
@@ -59,6 +97,20 @@ class PulseTools:
         # self.__close.close_keithley(True)
         return None
     
+    def savedata(self):
+        t = time.ctime()
+        with open('Résistances.txt','a') as f:
+            f.write(t)
+            f.write(', ')
+            f.write(str(self.__pulse_tension))
+            f.write(', ')
+            f.write(str(self.__pulse_width))
+            f.write(', ')
+            f.write(str(self.resistance_average))
+            f.write(', ')
+            f.write(str(self.resistance_average2))
+            f.write('\n')
+        
     def resistance(self):
         threading.Thread(target=self.resistance_start, args=(),).start()
   
@@ -70,6 +122,21 @@ class PulseTools:
         #self.progress_percentage = 100
         self.progress_bar_loop(70)
         return None 
+    
+    def close(self):
+        #self.datalog.close()
+        threading.Thread(target=self.close_start, args=(),).start()
+  
+    
+    def close_start(self):
+        for instrument in [self.__arduino_inst, self.__keithley_inst, self.__agi]:
+            instrument.close()
+        
+
+            
+
+        return None 
+
 
 
     @property
@@ -113,7 +180,7 @@ class PulseTools:
     
     @pulse_width.setter #Setter
     def pulse_width(self, val):
-        self.__pulse_width = int(val)
+        self.__pulse_width = float(val)
         self.__agi.set_width(self.__pulse_width)
         
     @property #Getter
@@ -122,7 +189,7 @@ class PulseTools:
     
     @pulse_tension.setter #Setter
     def pulse_tension(self, val):
-        self.__pulse_tension = int(val)
+        self.__pulse_tension = float(val)
         self.__agi.set_tension(self.__pulse_tension)
 
 class Agilent:
@@ -139,7 +206,7 @@ class Agilent:
                 rm = pyvisa.ResourceManager()
                 self.inst1 = rm.open_resource("GPIB0::5::0::INSTR")
             except pyvisa.errors.VisaIOError:
-                self.inst = None
+                self.inst1 = None
                 logging.info("***Agilent***: Could not find instrument.")
         
     def values_ag(self):
@@ -156,28 +223,21 @@ class Agilent:
         
     def set_width(self, width):
         self.inst1.write(":PULS:WIDT %sMS" % (width))
-
-
-
-
-
-
-# class close_port_com :
     
-#     def __init__(self,debug):
+    def close(self):
+        self.inst1.close()
+        self.inst1 = None 
+
+
+
+
+
+
+      
         
-#         self.sucessfull = False
-#         self.debug = debug
-        
-        
-#     def close_arduino(self):
-#        return self.inst2.close()
-       
-#     def close_keithley(self):
-#        return  self.inst.close()
-        
-#     def close_agilent(self):
-#          return self.inst1.close()
+    
+    
+    
              
 
 
@@ -216,6 +276,10 @@ class Arduino:
     def reset(self):
         self.inst2.write("RST\r")
         
+    def close(self):
+       self.inst2.close()
+       self.inst2 = None 
+     
         
         
 class Oscilloscope:
@@ -249,8 +313,8 @@ class Keithley:
 
         if not self.debug:
             self.write("smua.sense=smua.SENSE_LOCAL")
-            #☺self.write("PulseVMeasureI(smua, 0, 1, 20e-2, 50e-2, 10)")  # pulse de 10volts pendant 2ms
-            self.write("PulseVMeasureI(smua, 0, 1, 20e-2, 50e-2, "+str(avg)+")")  # pulse de 10volts pendant 2ms
+            #☺self.write("PulseVMeasureI(smua, 0, 1, 20e-2, 50e-2, 10)")  
+            self.write("PulseVMeasureI(smua, 0, 1, 20e-2, 50e-2, "+str(avg)+")")  #Pulse d'1 Volts
             sortie = self.query("printbuffer(1, smua.nvbuffer1.n,  smua.nvbuffer1.readings)")
             s = sortie.split(', ')
             r = []
@@ -274,6 +338,11 @@ class Keithley:
     def write(self, message):
         if not self.debug:
             self.inst.write(message)
+            
+    def close(self):
+        self.inst.close()
+        self.inst = None 
+
 
     def get_current(self):
         

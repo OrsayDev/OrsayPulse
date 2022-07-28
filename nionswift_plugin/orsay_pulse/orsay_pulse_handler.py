@@ -20,10 +20,11 @@ class handler:
         self.document_controller = document_controller
         self.instrument = instrument
         self.property_changed_event_listener = self.instrument.property_changed_event.listen(self.prepare_widget_enable)
+        self.property_busy_event_listener = self.instrument.property_busy_event.listen(self.prepare_widget_disable)
 
 
     def init_handler(self):
-        self.event_loop.create_task(self.do_enable(True, ['']))
+        self.event_loop.create_task(self.do_enable(False, ['init_pb']))
 
     async def data_item_show(self, DI):
         self.document_controller.document_model.append_data_item(DI)
@@ -62,7 +63,13 @@ class handler:
         self.instrument.pulse()
         
     def exit_measurement(self, widget):
-        self.instrument.pulse()
+        self.instrument.close()
+    
+    def init_measurement(self, widget):
+        if self.instrument.init():
+            self.init_pb.enabled = False
+            self.event_loop.create_task(self.do_enable(True, ['init_pb']))
+        
 
 class View:
 
@@ -104,13 +111,16 @@ class View:
         self.get_resistance_pb = ui.create_push_button(text='Get resistance', name='get_resistance_pb',
                                                      on_clicked='pool_resistance', width=100)
         self.acquire_pb = ui.create_push_button(text='Pulse', name='acquire_pb',
-                                                on_clicked='acquire_measurement',width=100)
+                                                on_clicked='acquire_measurement',width=50)
         
-        self.exit_pb = ui.create_push_button(text='Stop', name='exit_pb',
-                                                on_clicked='exit_measurement',width=100)
+        self.init_pb = ui.create_push_button(text='Init', name='init_pb',
+                                                on_clicked='init_measurement',width=50)
+        
+        self.exit_pb = ui.create_push_button(text='Abort', name='exit_pb',
+                                                on_clicked='exit_measurement',width=50)
         self.progress_bar = ui.create_progress_bar(name = 'progress_bar', value = '@binding(instrument.progress_percentage)', width=300)
         
-        self.button_row = ui.create_row(self.get_resistance_pb, self.acquire_pb, self.exit_pb, ui.create_stretch())
+        self.button_row = ui.create_row(self.init_pb,self.get_resistance_pb, self.acquire_pb,  self.exit_pb, ui.create_stretch())
         
         
         #Group manager
