@@ -2,13 +2,10 @@
 import gettext
 from nion.swift import Panel
 from nion.swift import Workspace
-import time
-import threading
 
 from nion.ui import Declarative
 from nion.ui import UserInterface
 
-from . import orsay_pulse_handler
 
 _ = gettext.gettext
 
@@ -86,7 +83,12 @@ class View:
                                                 on_clicked='acquire_measurement')
 
 
-        self.ui_view = ui.create_column(self.d2_group, self.acquire_pb)
+        self.set_offset_voltage_label = ui.create_label(name='set_offset_voltage_label', text='Voltage offset (V): ')
+        self.set_offset_voltage = ui.create_line_edit(name='set_offset_voltage', text='@binding(instrument.offset_voltage)')
+        self.set_offset_voltage_enable = ui.create_check_box(name='set_offset_voltage_enable', checked='@binding(instrument.offset_voltage_enable)')
+        self.offset_voltage_row = ui.create_row(self.set_offset_voltage_label, self.set_offset_voltage, ui.create_stretch(), self.set_offset_voltage_enable)
+
+        self.ui_view = ui.create_column(self.d2_group, self.acquire_pb, self.offset_voltage_row)
 
 def create_panel(document_controller, panel_id, properties):
     instrument = properties["instrument"]

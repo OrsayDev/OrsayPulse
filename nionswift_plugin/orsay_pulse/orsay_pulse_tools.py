@@ -1,6 +1,7 @@
 __author__ = "Yves Auad"
 import numpy
 import logging
+import time
 from nion.utils import Event
 
 class PulseTools:
@@ -14,13 +15,36 @@ class PulseTools:
         self.property_changed_event = Event.Event()
 
     def acquire(self):
+        self.__keithley_inst.get_resistance_average(10)
         self.property_changed_event.fire("resistance_average")
-        return None
 
     @property #Getter
     def resistance_average(self):
-        val = self.__keithley_inst.get_values(10)
-        return str(val[0])
+        return self.__keithley_inst.resistance_average
+
+    @property
+    def offset_voltage(self):
+        offset_voltage = self.__keithley_inst.query("print(smua.source.levelv)")
+        return float(offset_voltage)
+
+    @offset_voltage.setter
+    def offset_voltage(self, value):
+        self.__keithley_inst.set_offset_value(float(value))
+        self.property_changed_event.fire("offset_voltage")
+
+    @property
+    def offset_voltage_enable(self):
+        response = self.__keithley_inst.query("print(smua.source.output)")
+        return True if int(float(response)) == 1 else False
+
+    @offset_voltage_enable.setter
+    def offset_voltage_enable(self, value):
+        if value:
+            self.__keithley_inst.write("smua.source.output = smua.OUTPUT_ON")
+            #self.__keithley_inst.write("smua.source.output = smua.OUTPUT_HIGHZ")
+        else:
+            self.__keithley_inst.write("smua.source.output = smua.OUTPUT_OFF")
+        self.property_changed_event.fire("offset_voltage_enable")
 
 
 
@@ -45,6 +69,7 @@ class Keithley:
 
         self.sucessfull = False
         self.debug = debug
+        self.resistance_average = None
 
         if debug:
             self.sucessfull = True
@@ -53,13 +78,23 @@ class Keithley:
             try:
                 rm = pyvisa.ResourceManager()
                 self.inst = rm.open_resource("USB0::0x05E6::0x2614::4075638::0::INSTR", timeout = 300000)
-                self.beepkeithley(2400)
                 self.sucessfull = True
             except pyvisa.errors.VisaIOError:
                 self.inst = None
                 logging.info("***KEITHLEY***: Could not find instrument.")
 
-    def get_values(self, avg):
+    def set_offset_value(self, offset):
+        # Configure the SMU for voltage source mode
+        self.write("smua.source.func = smua.OUTPUT_DCVOLTS")  # Set to voltage source mode
+
+        # Set the voltage offset
+        self.write(f"smua.source.levelv = {offset}")  # Apply the voltage offset
+
+        # Enable the output
+        self.write("smua.source.output = smua.OUTPUT_ON")
+
+
+    def get_resistance_average(self, avg: int):
 
         """Fonction qui initialise le keithley dans le but d'éffectuer la mesure de résistance"""
 
@@ -71,8 +106,9 @@ class Keithley:
             r = []
             for i in range(avg):
                 r.append(1 / float(s[i]))  # Calcul de la résistance aux bornes du keithley
-            logging.info("\n\nla résistance de votre système vaut :", numpy.mean(r), "ohms. Avec une erreur de:", numpy.std(r), "%")
-            return (numpy.mean(r), numpy.std(r))
+            logging.info(f"***KEITHLEY***: The resistance is: {numpy.mean(r)} ohms. STD: {numpy.std(r)}%")
+            self.resistance_average = numpy.mean(r)
+            return numpy.mean(r), numpy.std(r)
         else:
             val = (numpy.random.rand(), numpy.random.rand())
             logging.info(f'***KEITHLEY***: {val}')
