@@ -29,7 +29,10 @@ class PulseTools:
 
     @offset_voltage.setter
     def offset_voltage(self, value):
-        self.__keithley_inst.set_offset_value(float(value))
+        if float(value) < 20:
+            self.__keithley_inst.set_offset_value(float(value))
+        else:
+            logging.info(f'***PULSE***: Offset voltage must be <20V.')
         self.property_changed_event.fire("offset_voltage")
 
     @property
@@ -41,7 +44,6 @@ class PulseTools:
     def offset_voltage_enable(self, value):
         if value:
             self.__keithley_inst.write("smua.source.output = smua.OUTPUT_ON")
-            #self.__keithley_inst.write("smua.source.output = smua.OUTPUT_HIGHZ")
         else:
             self.__keithley_inst.write("smua.source.output = smua.OUTPUT_OFF")
         self.property_changed_event.fire("offset_voltage_enable")
