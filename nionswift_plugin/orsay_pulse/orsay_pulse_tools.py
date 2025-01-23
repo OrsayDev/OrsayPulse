@@ -127,7 +127,7 @@ class Keithley:
         if not self.debug:
             return self.inst.query(message)
         else:
-            return '666'
+            return numpy.random.uniform(1, 20)
 
     def write(self, message):
         if not self.debug:
