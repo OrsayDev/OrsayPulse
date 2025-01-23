@@ -84,6 +84,7 @@ class Keithley:
             except pyvisa.errors.VisaIOError:
                 self.inst = None
                 logging.info("***KEITHLEY***: Could not find instrument.")
+                self.debug = True
 
     def set_offset_value(self, offset):
         # Configure the SMU for voltage source mode
@@ -125,6 +126,8 @@ class Keithley:
     def query(self, message):
         if not self.debug:
             return self.inst.query(message)
+        else:
+            return '666'
 
     def write(self, message):
         if not self.debug:
