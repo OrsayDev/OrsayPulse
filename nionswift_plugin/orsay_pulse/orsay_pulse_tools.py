@@ -18,35 +18,42 @@ class PulseTools:
         self.__keithley_inst.get_resistance_average(10)
         self.property_changed_event.fire("resistance_average")
 
+    def measure_all(self):
+        self.property_changed_event.fire("measure_voltage")
+        self.property_changed_event.fire("measure_current")
+
+    @property
+    def measure_voltage(self):
+        return self.__keithley_inst.measure('v')
+
+    @property
+    def measure_current(self):
+        return self.__keithley_inst.measure('i')
+
     @property #Getter
     def resistance_average(self):
         return self.__keithley_inst.resistance_average
 
     @property
-    def offset_voltage(self):
-        offset_voltage = self.__keithley_inst.query("print(smua.source.levelv)")
-        return float(offset_voltage)
+    def source_voltage(self):
+        return self.__keithley_inst.get_source_voltage()
 
-    @offset_voltage.setter
-    def offset_voltage(self, value):
+    @source_voltage.setter
+    def source_voltage(self, value):
         if float(value) < 20:
-            self.__keithley_inst.set_offset_value(float(value))
+            self.__keithley_inst.set_source_voltage(float(value))
         else:
             logging.info(f'***PULSE***: Offset voltage must be <20V.')
-        self.property_changed_event.fire("offset_voltage")
+        self.property_changed_event.fire("source_voltage")
 
     @property
-    def offset_voltage_enable(self):
-        response = self.__keithley_inst.query("print(smua.source.output)")
-        return True if int(float(response)) == 1 else False
+    def source_voltage_enable(self):
+        return self.__keithley_inst.get_offset_voltage_enable()
 
-    @offset_voltage_enable.setter
-    def offset_voltage_enable(self, value):
-        if value:
-            self.__keithley_inst.write("smua.source.output = smua.OUTPUT_ON")
-        else:
-            self.__keithley_inst.write("smua.source.output = smua.OUTPUT_OFF")
-        self.property_changed_event.fire("offset_voltage_enable")
+    @source_voltage_enable.setter
+    def source_voltage_enable(self, value: bool):
+        self.__keithley_inst.set_offset_voltage_enable(value)
+        self.property_changed_event.fire("source_voltage_enable")
 
 
 
@@ -66,6 +73,7 @@ class Oscilloscope:
     def __init__(self):
         pass
 
+#This is for the Keithley sourcemeter series 26XX
 class Keithley:
     def __init__(self, debug):
 
@@ -86,15 +94,32 @@ class Keithley:
                 logging.info("***KEITHLEY***: Could not find instrument.")
                 self.debug = True
 
-    def set_offset_value(self, offset):
-        # Configure the SMU for voltage source mode
+    def get_source_voltage(self):
+        offset_voltage = self.query("print(smua.source.levelv)")
+        return float(offset_voltage)
+
+    def set_source_voltage(self, offset):
         self.write("smua.source.func = smua.OUTPUT_DCVOLTS")  # Set to voltage source mode
-
-        # Set the voltage offset
         self.write(f"smua.source.levelv = {offset}")  # Apply the voltage offset
+        self.write("smua.source.output = smua.OUTPUT_ON") # Enable the output
 
-        # Enable the output
-        self.write("smua.source.output = smua.OUTPUT_ON")
+    def measure(self, type: str):
+        if type == 'v':
+            return float(self.query("print(smua.measure.v())"))
+        elif type == 'i':
+            return float(self.query("print(smua.measure.i())"))
+        else:
+            logging.info("***KEITHLEY***: Measurement used incorrect parameters. Please use only 'v' or 'i'.")
+
+    def get_offset_voltage_enable(self):
+        response = self.query("print(smua.source.output)")
+        return True if int(float(response)) == 1 else False
+
+    def set_offset_voltage_enable(self, value):
+        if value:
+            self.write("smua.source.output = smua.OUTPUT_ON")
+        else:
+            self.write("smua.source.output = smua.OUTPUT_OFF")
 
 
     def get_resistance_average(self, avg: int):
@@ -132,9 +157,3 @@ class Keithley:
     def write(self, message):
         if not self.debug:
             self.inst.write(message)
-
-    def get_current(self):
-        if self.debug:
-            return numpy.random.rand()
-        else:
-            pass

@@ -58,6 +58,9 @@ class handler:
     def acquire_measurement(self, widget):
         self.instrument.acquire()
 
+    def measure_all(self, widget):
+        self.instrument.measure_all()
+
 class View:
 
     def __init__(self, instrument):
@@ -82,13 +85,28 @@ class View:
         self.acquire_pb = ui.create_push_button(text='Acquire', name='acquire_pb',
                                                 on_clicked='acquire_measurement')
 
+        #The new part of the window
+        self.set_source_voltage_label = ui.create_label(name='set_offset_voltage_label', text='Voltage source (V): ')
+        self.set_source_voltage = ui.create_line_edit(name='set_offset_voltage', text='@binding(instrument.source_voltage)', width = 100)
+        self.set_source_voltage_enable = ui.create_check_box(name='set_offset_voltage_enable', checked='@binding(instrument.source_voltage_enable)')
+        self.source_voltage_row = ui.create_row(self.set_source_voltage_label, self.set_source_voltage, ui.create_stretch(), self.set_source_voltage_enable)
 
-        self.set_offset_voltage_label = ui.create_label(name='set_offset_voltage_label', text='Voltage offset (V): ')
-        self.set_offset_voltage = ui.create_line_edit(name='set_offset_voltage', text='@binding(instrument.offset_voltage)')
-        self.set_offset_voltage_enable = ui.create_check_box(name='set_offset_voltage_enable', checked='@binding(instrument.offset_voltage_enable)')
-        self.offset_voltage_row = ui.create_row(self.set_offset_voltage_label, self.set_offset_voltage, ui.create_stretch(), self.set_offset_voltage_enable)
+        #return voltage
+        self.voltage_label = ui.create_label(name='voltage_label', text='Voltage measured (V): ')
+        self.voltage = ui.create_label(name='voltage',
+                                                      text='@binding(instrument.measure_voltage)', width=50)
+        self.voltage_row = ui.create_row(self.voltage_label, self.voltage, ui.create_stretch())
 
-        self.ui_view = ui.create_column(self.d2_group, self.acquire_pb, self.offset_voltage_row)
+        #return current
+        self.current_label = ui.create_label(name='current_label', text='Current measured (V): ')
+        self.current = ui.create_label(name='current',
+                                                      text='@binding(instrument.measure_current)', width=50)
+        self.current_row = ui.create_row(self.current_label, self.current, ui.create_stretch())
+
+        self.measure = ui.create_push_button(text='Measure', name='measure_pb',
+                                                on_clicked='measure_all')
+
+        self.ui_view = ui.create_column(self.source_voltage_row, self.voltage_row, self.current_row, self.measure)
 
 def create_panel(document_controller, panel_id, properties):
     instrument = properties["instrument"]
