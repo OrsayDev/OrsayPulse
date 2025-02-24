@@ -21,6 +21,8 @@ class PulseTools:
     def measure_all(self):
         self.property_changed_event.fire("measure_voltage")
         self.property_changed_event.fire("measure_current")
+        self.property_changed_event.fire("source_voltage")
+        self.property_changed_event.fire("source_voltage_enable")
 
     @property
     def measure_voltage(self):
@@ -57,9 +59,6 @@ class PulseTools:
 
 
 
-
-
-
 class Agilent:
     def __init__(self):
         pass
@@ -88,6 +87,7 @@ class Keithley:
             try:
                 rm = pyvisa.ResourceManager()
                 self.inst = rm.open_resource("USB0::0x05E6::0x2614::4075638::0::INSTR", timeout = 300000)
+                self.write("smua.source.func = smua.OUTPUT_DCVOLTS")  # Set to voltage source mode
                 self.sucessfull = True
             except pyvisa.errors.VisaIOError:
                 self.inst = None
@@ -99,9 +99,7 @@ class Keithley:
         return float(offset_voltage)
 
     def set_source_voltage(self, offset):
-        self.write("smua.source.func = smua.OUTPUT_DCVOLTS")  # Set to voltage source mode
         self.write(f"smua.source.levelv = {offset}")  # Apply the voltage offset
-        self.write("smua.source.output = smua.OUTPUT_ON") # Enable the output
 
     def measure(self, type: str):
         if type == 'v':
